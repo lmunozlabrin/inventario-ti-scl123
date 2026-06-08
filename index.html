@@ -1,0 +1,541 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Inventario TI SCL1-SCL2-SCL3 | LuisDev Solutions</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+:root{
+--bg:#0f172a;
+--card:#1e293b;
+--card2:#334155;
+--text:#ffffff;
+--muted:#94a3b8;
+--primary:#38bdf8;
+--success:#22c55e;
+--warning:#facc15;
+--danger:#ef4444;
+}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Segoe UI',sans-serif;
+}
+
+body{
+background:var(--bg);
+color:var(--text);
+padding:25px;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+flex-wrap:wrap;
+margin-bottom:30px;
+}
+
+.logo{
+display:flex;
+align-items:center;
+gap:15px;
+}
+
+.logo-icon{
+width:80px;
+height:80px;
+border-radius:20px;
+background:linear-gradient(135deg,#2563eb,#38bdf8);
+display:flex;
+justify-content:center;
+align-items:center;
+font-size:34px;
+font-weight:bold;
+box-shadow:0 0 20px rgba(56,189,248,.4);
+}
+
+.logo-text h1{
+font-size:30px;
+}
+
+.logo-text p{
+color:var(--muted);
+}
+
+.status-online{
+background:#052e16;
+color:#86efac;
+padding:10px 20px;
+border-radius:30px;
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:20px;
+margin-bottom:30px;
+}
+
+.card{
+background:var(--card);
+padding:25px;
+border-radius:20px;
+box-shadow:0 0 20px rgba(0,0,0,.2);
+}
+
+.card h3{
+color:var(--muted);
+margin-bottom:10px;
+}
+
+.card span{
+font-size:34px;
+font-weight:bold;
+}
+
+.search{
+margin-bottom:25px;
+}
+
+.search input{
+width:100%;
+padding:15px;
+border:none;
+border-radius:15px;
+background:var(--card);
+color:white;
+font-size:16px;
+}
+
+.panel{
+background:var(--card);
+padding:20px;
+border-radius:20px;
+margin-bottom:25px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th{
+background:var(--card2);
+padding:15px;
+}
+
+td{
+padding:15px;
+text-align:center;
+border-bottom:1px solid #475569;
+}
+
+tr:hover{
+background:#293548;
+}
+
+.ok{
+color:var(--success);
+font-weight:bold;
+}
+
+.bajo{
+color:var(--warning);
+font-weight:bold;
+}
+
+.critico{
+color:var(--danger);
+font-weight:bold;
+}
+
+.footer{
+text-align:center;
+margin-top:30px;
+color:var(--muted);
+}
+
+@media(max-width:768px){
+
+.logo{
+width:100%;
+margin-bottom:20px;
+}
+
+.header{
+flex-direction:column;
+align-items:flex-start;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+
+<div class="logo">
+
+<div class="logo-icon">
+⚡
+</div>
+
+<div class="logo-text">
+<h1>LD | LuisDev Solutions</h1>
+<p>Inventario TI SCL1-SCL2-SCL3</p>
+</div>
+
+</div>
+
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+
+<div class="status-online" id="estadoConexion">
+🟢 Conectado a Google Sheets
+</div>
+
+<select id="idioma" style="
+padding:10px;
+border-radius:10px;
+background:#1e293b;
+color:white;
+border:none;
+">
+<option value="es">🇨🇱 Español</option>
+<option value="pt">🇧🇷 Português</option>
+</select>
+
+<button id="btnActualizar" style="
+padding:10px 15px;
+border:none;
+border-radius:10px;
+background:#38bdf8;
+cursor:pointer;
+font-weight:bold;
+">
+🔄 Actualizar
+</button>
+
+</div>
+
+</div>
+
+<div class="cards">
+
+<div class="card">
+<h3 id="lblProductos">Total Productos</h3>
+<span id="totalProductos">0</span>
+</div>
+
+<div class="card">
+<h3 id="lblUnidades">Total Unidades</h3>
+<span id="totalUnidades">0</span>
+</div>
+
+<div class="card">
+<h3 id="lblCriticos">Productos Críticos</h3>
+<span id="criticos">0</span>
+</div>
+
+<div class="card">
+<h3>Última Actualización</h3>
+<span id="actualizacion" style="font-size:18px;">--</span>
+</div>
+
+</div>
+
+<div class="search">
+<input
+type="text"
+id="buscador"
+placeholder="🔍 Buscar producto..."
+>
+</div>
+
+<div class="panel">
+<canvas id="grafico"></canvas>
+</div>
+
+<div class="panel">
+<canvas id="graficoPie"></canvas>
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Producto</th>
+<th>Stock</th>
+<th>Estado</th>
+</tr>
+</thead>
+
+<tbody id="tabla"></tbody>
+
+</table>
+
+</div>
+
+<div class="footer">
+LuisDev Solutions © 2026
+</div>
+
+<script>
+
+const CSV_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vTj_z27Cc6Y02iGqv9seNqlmmZGDv4mWX44gR_R63ljm27lCqJw4qeglPfwhLDsMJvmVYAxBYV53YSx/pub?output=csv";
+
+let inventario = [];
+let grafico = null;
+let graficoPie = null;
+
+function obtenerEstado(stock){
+
+if(stock <= 10){
+return {
+texto:"🔴 CRITICO",
+clase:"critico"
+};
+}
+
+if(stock <= 20){
+return {
+texto:"🟡 BAJO",
+clase:"bajo"
+};
+}
+
+return {
+texto:"🟢 OK",
+clase:"ok"
+};
+
+}
+
+async function cargarDatos(){
+
+const res = await fetch(CSV_URL);
+const csv = await res.text();
+
+const filas = csv.trim().split("\n").slice(1);
+
+inventario = filas.map(f=>{
+
+const [id,producto,stock] = f.split(",");
+
+return{
+id,
+producto,
+stock:Number(stock)
+};
+
+});
+
+renderizar();
+
+document.getElementById("actualizacion").innerText =
+new Date().toLocaleString();
+
+}
+
+function renderizar(){
+
+const filtro =
+document.getElementById("buscador")
+.value
+.toLowerCase();
+
+const tabla =
+document.getElementById("tabla");
+
+tabla.innerHTML = "";
+
+let total = 0;
+let criticos = 0;
+
+inventario
+.filter(x =>
+x.producto.toLowerCase().includes(filtro)
+)
+.forEach(item=>{
+
+total += item.stock;
+
+const estado =
+obtenerEstado(item.stock);
+
+if(item.stock <= 10){
+criticos++;
+}
+
+tabla.innerHTML += `
+<tr>
+<td>${item.id}</td>
+<td>${item.producto}</td>
+<td>${item.stock}</td>
+<td class="${estado.clase}">
+${estado.texto}
+</td>
+</tr>
+`;
+
+});
+
+document.getElementById("totalProductos")
+.innerText = inventario.length;
+
+document.getElementById("totalUnidades")
+.innerText =
+inventario.reduce(
+(a,b)=>a+b.stock,
+0
+);
+
+document.getElementById("criticos")
+.innerText = criticos;
+
+dibujarGrafico();
+dibujarGraficoPie();
+
+
+
+}
+
+function dibujarGrafico(){
+
+if(grafico){
+grafico.destroy();
+}
+
+grafico = new Chart(
+document.getElementById("grafico"),
+{
+type:"bar",
+data:{
+labels:
+inventario.map(x=>x.producto),
+datasets:[{
+label:"Stock",
+data:
+inventario.map(x=>x.stock),
+borderWidth:1
+}]
+},
+options:{
+responsive:true,
+plugins:{
+legend:{
+labels:{
+color:"white"
+}
+}
+},
+scales:{
+x:{
+ticks:{
+color:"white"
+}
+},
+y:{
+ticks:{
+color:"white"
+}
+}
+}
+}
+}
+);
+
+}
+
+document
+.getElementById("buscador")
+.addEventListener(
+"input",
+renderizar
+);
+
+function dibujarGraficoPie(){
+
+if(graficoPie){
+graficoPie.destroy();
+}
+
+graficoPie = new Chart(
+document.getElementById("graficoPie"),
+{
+type:"pie",
+data:{
+labels: inventario.map(x=>x.producto),
+datasets:[{
+data: inventario.map(x=>x.stock)
+}]
+},
+options:{
+plugins:{
+legend:{
+labels:{
+color:"white"
+}
+}
+}
+}
+}
+);
+
+}
+
+cargarDatos();
+
+setInterval(
+cargarDatos,
+60000
+);
+
+document
+.getElementById("btnActualizar")
+.addEventListener(
+"click",
+()=>{
+cargarDatos();
+}
+);
+
+const textos = {
+
+es:{
+buscar:"🔍 Buscar producto...",
+productos:"Total Productos",
+unidades:"Total Unidades",
+criticos:"Productos Críticos"
+},
+
+pt:{
+buscar:"🔍 Procurar produto...",
+productos:"Total Produtos",
+unidades:"Total Unidades",
+criticos:"Produtos Críticos"
+}
+
+};
+
+document .getElementById("idioma") .addEventListener( "change", (e)=>{ const lang = e.target.value; document.getElementById("buscador").placeholder = textos[lang].buscar; document.getElementById("lblProductos").innerText = textos[lang].productos; document.getElementById("lblUnidades").innerText = textos[lang].unidades; document.getElementById("lblCriticos").innerText = textos[lang].criticos; } );
+
+</script>
+
+</body>
+</html>
+
+
+
