@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -267,6 +266,33 @@ placeholder="🔍 Buscar producto..."
 <canvas id="grafico"></canvas>
 </div>
 
+<div class="panel">
+
+<h2 style="margin-bottom:15px;">
+📋 Historial de Movimientos
+</h2>
+
+<div style="overflow-x:auto;">
+<table>
+
+<table>
+
+<thead>
+<tr>
+<th>Fecha</th>
+<th>Ticket</th>
+<th>Producto</th>
+<th>Cantidad</th>
+<th>Tipo</th>
+</tr>
+</thead>
+
+<tbody id="tablaMovimientos"></tbody>
+
+</table>
+
+</div>
+
 <div class="panel" style="max-width:500px;margin:auto;">
     <canvas id="graficoPie"></canvas>
 </div>
@@ -297,6 +323,9 @@ LuisDev Solutions © 2026
 const CSV_URL =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vTj_z27Cc6Y02iGqv9seNqlmmZGDv4mWX44gR_R63ljm27lCqJw4qeglPfwhLDsMJvmVYAxBYV53YSx/pub?output=csv";
 
+const MOVIMIENTOS_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vTj_z27Cc6Y02iGqv9seNqlmmZGDv4mWX44gR_R63ljm27lCqJw4qeglPfwhLDsMJvmVYAxBYV53YSx/pub?gid=2067167967&single=true&output=csv";
+
 let inventario = [];
 let grafico = null;
 let graficoPie = null;
@@ -323,6 +352,54 @@ clase:"ok"
 };
 
 }
+
+
+async function cargarMovimientos(){
+
+try{
+
+const res = await fetch(MOVIMIENTOS_URL);
+const csv = await res.text();
+
+const filas =
+csv.trim().split("\n").slice(1);
+
+const tabla =
+document.getElementById("tablaMovimientos");
+
+tabla.innerHTML = "";
+
+filas.reverse().forEach(f=>{
+
+const [
+fecha,
+ticket,
+producto,
+cantidad,
+tipo
+] = f.split(",");
+
+tabla.innerHTML += `
+<tr>
+<td>${fecha}</td>
+<td>${ticket}</td>
+<td>${producto}</td>
+<td>${cantidad}</td>
+<td>${tipo}</td>
+</tr>
+`;
+
+});
+
+}catch(error){
+
+console.error(error);
+
+}
+
+}
+
+
 
 async function cargarDatos(){
 
@@ -497,12 +574,10 @@ color:"white"
 
 }
 
+setInterval(()=>{
 cargarDatos();
-
-setInterval(
-cargarDatos,
-60000
-);
+cargarMovimientos();
+},60000);
 
 document
 .getElementById("btnActualizar")
@@ -510,6 +585,7 @@ document
 "click",
 ()=>{
 cargarDatos();
+cargarMovimientos();
 }
 );
 
